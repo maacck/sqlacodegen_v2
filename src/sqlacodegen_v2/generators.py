@@ -319,7 +319,7 @@ class TablesGenerator(CodeGenerator):
         for column in table.columns:
             # Cast is required because of a bug in the SQLAlchemy stubs regarding
             # Table.columns
-            args.append(self.render_column(column, True))
+            args.append(self.render_column(column, True, True))
 
         for constraint in sorted(table.constraints, key=get_constraint_sort_key):
             if uses_default_name(constraint):
@@ -353,7 +353,7 @@ class TablesGenerator(CodeGenerator):
 
         return render_callable("Index", repr(index.name), *extra_args, kwargs=kwargs)
 
-    def render_column(self, column: Column[Any], show_name: bool) -> str:
+    def render_column(self, column: Column[Any], show_name: bool, table_col: bool = False) -> str:
         args = []
         kwargs: dict[str, Any] = {}
         kwarg = []
@@ -1044,6 +1044,96 @@ class DeclarativeGenerator(TablesGenerator):
                 rendered.append(f"{model.name} = {self.render_table(model.table)}")
 
         return "\n\n\n".join(rendered)
+
+    def render_column(self, column: Column[Any], show_name: bool, table_col: bool = False) -> str:
+        args = []
+        kwargs: dict[str, Any] = {}
+        kwarg = []
+        is_sole_pk = column.primary_key and len(column.table.primary_key) == 1
+        dedicated_fks = [
+            c
+            for c in column.foreign_keys
+            if c.constraint
+               and len(c.constraint.columns) == 1
+               and uses_default_name(c.constraint)
+        ]
+        is_unique = any(
+            isinstance(c, UniqueConstraint)
+            and set(c.columns) == {column}
+            and uses_default_name(c)
+            for c in column.table.constraints
+        )
+        is_unique = is_unique or any(
+            i.unique and set(i.columns) == {column} and uses_default_name(i)
+            for i in column.table.indexes
+        )
+        is_primary = any(
+            isinstance(c, PrimaryKeyConstraint)
+            and column.name in c.columns
+            and uses_default_name(c)
+            for c in column.table.constraints
+        )
+        has_index = any(
+            set(i.columns) == {column} and uses_default_name(i)
+            for i in column.table.indexes
+        )
+
+        if show_name:
+            args.append(repr(column.name))
+
+        # Render the column type if there are no foreign keys on it or any of them
+        # points back to itself
+        if not dedicated_fks or any(fk.column is column for fk in dedicated_fks):
+            args.append(self.render_column_type(column.type))
+
+        for fk in dedicated_fks:
+            args.append(self.render_constraint(fk))
+
+        if column.default:
+            args.append(repr(column.default))
+
+        if column.key != column.name:
+            kwargs["key"] = column.key
+        if is_primary:
+            kwargs["primary_key"] = True
+        if not column.nullable and not is_sole_pk:
+            kwargs["nullable"] = False
+
+        if is_unique:
+            column.unique = True
+            kwargs["unique"] = True
+        if has_index:
+            column.index = True
+            kwarg.append("index")
+            kwargs["index"] = True
+
+        if isinstance(column.server_default, DefaultClause):
+            kwargs["server_default"] = render_callable(
+                "text", repr(column.server_default.arg.text)
+            )
+        elif isinstance(column.server_default, Computed):
+            expression = str(column.server_default.sqltext)
+
+            computed_kwargs = {}
+            if column.server_default.persisted is not None:
+                computed_kwargs["persisted"] = column.server_default.persisted
+
+            args.append(
+                render_callable("Computed", repr(expression), kwargs=computed_kwargs)
+            )
+        elif isinstance(column.server_default, Identity):
+            args.append(repr(column.server_default))
+        elif column.server_default:
+            kwargs["server_default"] = repr(column.server_default)
+
+        comment = getattr(column, "comment", None)
+        if comment:
+            kwargs["comment"] = repr(comment)
+        if table_col:
+            return render_callable("Column", *args, kwargs=kwargs)
+        else:
+            return render_callable("mapped_column", *args, kwargs=kwargs)
+
 
     def render_class(self, model: ModelClass) -> str:
         sections: list[str] = []
