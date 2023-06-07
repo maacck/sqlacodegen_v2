@@ -1,5 +1,10 @@
 Version history
 ===============
+**0.9.1**
+
+- Rename cli scripts to `sqlacodegen_v2`
+- Fix `mapped_column` in `Table`
+
 
 **0.9.0**
 
