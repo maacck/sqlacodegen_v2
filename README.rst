@@ -35,12 +35,12 @@ Installation
 
 To install, do::
 
-    pip install sqlacodegen
+    pip install sqlacodegen_v2
 
 To include support for the PostgreSQL ``CITEXT`` extension type (which should be
 considered as tested only under a few environments) specify the ``citext`` extra::
 
-    pip install sqlacodegen[citext]
+    pip install sqlacodegen_v2[citext]
 
 
 Quickstart
@@ -52,13 +52,13 @@ to SQLAlchemy's `create_engine()`_ method so please refer to
 
 Examples::
 
-    sqlacodegen postgresql:///some_local_db
-    sqlacodegen --generator tables mysql+pymysql://user:password@localhost/dbname
-    sqlacodegen --generator dataclasses sqlite:///database.db
+    sqlacodegen_v2 postgresql:///some_local_db
+    sqlacodegen_v2 --generator tables mysql+pymysql://user:password@localhost/dbname
+    sqlacodegen_v2 --generator dataclasses sqlite:///database.db
 
 To see the list of generic options::
 
-    sqlacodegen --help
+    sqlacodegen_v2 --help
 
 .. _create_engine(): http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine
 .. _SQLAlchemy's documentation: http://docs.sqlalchemy.org/en/latest/core/engines.html
