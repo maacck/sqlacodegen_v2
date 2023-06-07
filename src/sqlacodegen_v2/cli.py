@@ -15,7 +15,7 @@ else:
 
 
 def main() -> None:
-    generators = {ep.name: ep for ep in entry_points(group="sqlacodegen.generators")}
+    generators = {ep.name: ep for ep in entry_points(group="sqlacodegen_v2.generators")}
     parser = argparse.ArgumentParser(
         description="Generates SQLAlchemy model code from an existing database."
     )
@@ -43,7 +43,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.version:
-        print(version("sqlacodegen"))
+        print(version("sqlacodegen_v2"))
         return
     if not args.url:
         print("You must supply a url\n", file=sys.stderr)

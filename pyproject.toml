@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sqlacodegen-2.0"
+name = "sqlacodegen_v2"
 description = "Automatic model code generator for SQLAlchemy 2.0"
 readme = "README.rst"
 authors = [{name = "Chengkai Mai", email = "c.mai@madainchina.com"}]
@@ -48,15 +48,15 @@ test = [
 ]
 citext = ["sqlalchemy-citext >= 1.7.0"]
 
-[project.entry-points."sqlacodegen.generators"]
-tables = "sqlacodegen.generators:TablesGenerator"
-declarative = "sqlacodegen.generators:DeclarativeGenerator"
-dataclasses = "sqlacodegen.generators:DataclassGenerator"
-sqlmodels = "sqlacodegen.generators:SQLModelGenerator"
-declarative-dataclasses = "sqlacodegen.generators:DeclarativeDataclassGenerator"
+[project.entry-points."sqlacodegen_v2.generators"]
+tables = "sqlacodegen_v2.generators:TablesGenerator"
+declarative = "sqlacodegen_v2.generators:DeclarativeGenerator"
+dataclasses = "sqlacodegen_v2.generators:DataclassGenerator"
+sqlmodels = "sqlacodegen_v2.generators:SQLModelGenerator"
+declarative-dataclasses = "sqlacodegen_v2.generators:DeclarativeDataclassGenerator"
 
 [project.scripts]
-sqlacodegen = "sqlacodegen.cli:main"
+sqlacodegen_v2 = "sqlacodegen_v2.cli:main"
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
@@ -80,7 +80,7 @@ addopts = "-rsx --tb=short"
 testpaths = ["tests"]
 
 [coverage.run]
-source = ["sqlacodegen"]
+source = ["sqlacodegen_v2"]
 relative_files = true
 
 [coverage.report]
