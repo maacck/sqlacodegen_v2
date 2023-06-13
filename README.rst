@@ -184,4 +184,3 @@ For examples, you can look at sqlacodegen's own entry points in its `pyproject.t
 Customizing Workflow
 =================================
 You may import ``generate_models`` directly from  ``sqlacodegen_v2``
-``geneg
