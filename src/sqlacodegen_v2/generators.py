@@ -300,7 +300,7 @@ class TablesGenerator(CodeGenerator):
 
     def generate_model_name(self, model: Model, global_names: set[str]) -> None:
         preferred_name = f"t_{model.table.name}"
-        model.name = self.find_free_name(preferred_name, global_names)
+        model.name = self.find_free_name(preferred_name, global_names,schema=model.table.schema)
 
     def render_module_variables(self, models: list[Model]) -> str:
         return "metadata = MetaData()"
@@ -533,7 +533,7 @@ class TablesGenerator(CodeGenerator):
         return table.name in ("alembic_version", "migrate_version")
 
     def find_free_name(
-            self, name: str, global_names: set[str], local_names: Collection[str] = ()
+            self, name: str, global_names: set[str], local_names: Collection[str] = (),schema: str | None = None, releationship: bool = False
     ) -> str:
         """
         Generate an attribute name that does not clash with other local or global names.
@@ -545,14 +545,17 @@ class TablesGenerator(CodeGenerator):
             name = "_" + name
         elif iskeyword(name) or name == "metadata":
             name += "_"
-
+        
+        if releationship:    
+            name =  schema.capitalize()+ '_' + name if schema  else  name
+        else:
+            name =  schema.capitalize() + name if schema  else  name
         original = name
         for i in count():
             if name not in global_names and name not in local_names:
                 break
 
             name = original + (str(i) if i else "_")
-
         return name
 
     def fix_column_types(self, table: Table) -> None:
@@ -948,22 +951,22 @@ class DeclarativeGenerator(TablesGenerator):
             preferred_name = "".join(
                 part[:1].upper() + part[1:] for part in preferred_name.split("_")
             )
-            if "use_inflect" in self.options:
-                singular_name = self.inflect_engine.singular_noun(preferred_name)
-                if singular_name:
-                    preferred_name = singular_name
+            # if "use_inflect" in self.options:
+            #     singular_name = self.inflect_engine.singular_noun(preferred_name)
+            #     # if singular_name:
+            #     #     preferred_name = singular_name
 
-            model.name = self.find_free_name(preferred_name, global_names)
+            model.name = self.find_free_name(preferred_name, global_names,schema=model.table.schema)
 
             # Fill in the names for column attributes
             local_names: set[str] = set()
             for column_attr in model.columns:
-                self.generate_column_attr_name(column_attr, global_names, local_names)
+                self.generate_column_attr_name(column_attr, global_names, local_names,model)
                 local_names.add(column_attr.name)
 
             # Fill in the names for relationship attributes
             for relationship in model.relationships:
-                self.generate_relationship_name(relationship, global_names, local_names)
+                self.generate_relationship_name(relationship, global_names, local_names,model)
                 local_names.add(relationship.name)
         else:
             super().generate_model_name(model, global_names)
@@ -973,9 +976,11 @@ class DeclarativeGenerator(TablesGenerator):
             column_attr: ColumnAttribute,
             global_names: set[str],
             local_names: set[str],
+            model
     ) -> None:
+        schema = None
         column_attr.name = self.find_free_name(
-            column_attr.column.name, global_names, local_names
+            column_attr.column.name, global_names, local_names,schema=schema
         )
 
     def generate_relationship_name(
@@ -983,6 +988,7 @@ class DeclarativeGenerator(TablesGenerator):
             relationship: RelationshipAttribute,
             global_names: set[str],
             local_names: set[str],
+            model
     ) -> None:
         # Self referential reverse relationships
         if (
@@ -1020,9 +1026,10 @@ class DeclarativeGenerator(TablesGenerator):
                     inflected_name = self.inflect_engine.singular_noun(preferred_name)
                     if inflected_name:
                         preferred_name = inflected_name
-
+        schema=relationship.target.table.schema
+        # Ynot new method for relationship schema to relationship name 
         relationship.name = self.find_free_name(
-            preferred_name, global_names, local_names
+            preferred_name, global_names, local_names,schema=schema,releationship=True
         )
 
     def render_module_variables(self, models: list[Model]) -> str:
@@ -1174,6 +1181,7 @@ class DeclarativeGenerator(TablesGenerator):
         parent_class_name = (
             model.parent_class.name if model.parent_class else self.base_class_name
         )
+        parent_class_name = 'Base'
         return f"class {model.name}({parent_class_name}):"
 
     def render_class_variables(self, model: ModelClass) -> str:
