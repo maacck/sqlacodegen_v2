@@ -21,8 +21,14 @@ def generate_models(
 ) -> None:
     generators = {ep.name: ep for ep in entry_points(group="sqlacodegen.generators")}
 
+    # Convert db_url from a string to a URL object so we can access methods
+    URL.make_url(db_url)
+    # Check driver type and handle it accordingly for known mssql+pyodbc case
+    if db_url.drivername == "mssql+pyodbc":
+        engine = create_engine(db_url, use_setinputsizes=False)
+    else:
+        engine = create_engine(db_url)
     # Use reflection to fill in the metadata
-    engine = create_engine(db_url)
     metadata = MetaData()
     # Instantiate the generator
     generator_class = generators[generator].load()
